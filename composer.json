@@ -8,3 +8,6 @@
     "phpunit/phpunit": "^10.0",
     "nyholm/psr7": "^1.8"
 }
+"suggest": {
+    "ext-redis": "Required to use RateLimiter\\Storage\\RedisStorage for multi-server deployments"
+}
