@@ -10,6 +10,7 @@ use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 use RateLimiter\RateLimiterInterface;
+use RateLimiter\RateLimitResult;
 
 /**
  * PSR-15 middleware that enforces a RateLimiterInterface on every request.
@@ -38,20 +39,29 @@ final class RateLimitMiddleware implements MiddlewareInterface
                 ->createResponse(429, 'Too Many Requests')
                 ->withHeader('Retry-After', (string) $result->retryAfterSeconds)
                 ->withHeader('X-RateLimit-Limit', (string) $result->limit)
-                ->withHeader('X-RateLimit-Remaining', '0');
+                ->withHeader('X-RateLimit-Remaining', (string) $result->remaining);
 
             $response->getBody()->write(json_encode([
                 'error' => 'Too Many Requests',
                 'retry_after_seconds' => $result->retryAfterSeconds,
             ], JSON_THROW_ON_ERROR));
 
-            return $response->withHeader('Content-Type', 'application/json');
+            return $this->withRateLimitResetHeader($response->withHeader('Content-Type', 'application/json'), $result);
         }
 
         $response = $handler->handle($request);
 
-        return $response
+        $response = $response
             ->withHeader('X-RateLimit-Limit', (string) $result->limit)
             ->withHeader('X-RateLimit-Remaining', (string) $result->remaining);
+
+        return $this->withRateLimitResetHeader($response, $result);
+    }
+
+    private function withRateLimitResetHeader(ResponseInterface $response, RateLimitResult $result): ResponseInterface
+    {
+        return $result->resetAt === null
+            ? $response
+            : $response->withHeader('X-RateLimit-Reset', (string) $result->resetAt);
     }
 }
