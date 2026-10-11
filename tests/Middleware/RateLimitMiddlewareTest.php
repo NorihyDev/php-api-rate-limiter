@@ -13,6 +13,7 @@ use Psr\Http\Server\RequestHandlerInterface;
 use RateLimiter\Middleware\RateLimitMiddleware;
 use RateLimiter\Storage\ArrayStorage;
 use RateLimiter\TokenBucketLimiter;
+use RateLimiter\FixedWindowLimiter;
 
 final class RateLimitMiddlewareTest extends TestCase
 {
@@ -88,5 +89,16 @@ final class RateLimitMiddlewareTest extends TestCase
 
         $this->assertSame(200, $response->getStatusCode());
         $this->assertSame('0', $response->getHeaderLine('X-RateLimit-Remaining'));
+    }
+
+    public function testAddsResetHeaderWhenAlgorithmProvidesIt(): void
+    {
+        $middleware = new RateLimitMiddleware(new FixedWindowLimiter(new ArrayStorage(), 1, 60), new Psr17Factory());
+        $request = new ServerRequest('GET', '/', serverParams: ['REMOTE_ADDR' => '1.2.3.4']);
+
+        $response = $middleware->process($request, $this->handlerReturning200());
+
+        $this->assertNotEmpty($response->getHeaderLine('X-RateLimit-Reset'));
+        $this->assertGreaterThan(time(), (int) $response->getHeaderLine('X-RateLimit-Reset'));
     }
 }
