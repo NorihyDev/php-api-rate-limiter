@@ -18,10 +18,6 @@
 "suggest": {
     "ext-redis": "Required to use RateLimiter\\Storage\\RedisStorage for multi-server deployments"
 },
-"require-dev": {
-    "phpunit/phpunit": "^10.0",
-    "nyholm/psr7": "^1.8"
-},
 "scripts": {"test": "phpunit"},
 "minimum-stability": "stable",
 "prefer-stable": true
