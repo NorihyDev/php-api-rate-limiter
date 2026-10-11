@@ -1,6 +1,6 @@
 # PHP API Rate Limiter
 
-[![CI](https://github.com/yourusername/php-api-rate-limiter/actions/workflows/ci.yml/badge.svg)](https://github.com/yourusername/php-api-rate-limiter/actions/workflows/ci.yml)
+[![CI](https://github.com/NorihyDev/php-api-rate-limiter/actions/workflows/ci.yml/badge.svg)](https://github.com/NorihyDev/php-api-rate-limiter/actions/workflows/ci.yml)
 [![PHP Version](https://img.shields.io/badge/php-%3E%3D8.1-777bb4)](composer.json)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
@@ -15,7 +15,7 @@ A lightweight, framework-agnostic PHP rate limiter for APIs. No dependencies req
 ## Installation
 
 ```bash
-composer require yourusername/php-api-rate-limiter
+composer require norihydev/php-api-rate-limiter
 ```
 
 For `RedisStorage`, you'll also need the `ext-redis` PHP extension installed.
@@ -88,6 +88,24 @@ $storage = new RedisStorage($redis, prefix: 'my_app:');
 $limiter = new TokenBucketLimiter($storage, capacity: 100, refillRate: 10.0);
 ```
 
+### Fixed Window (low storage overhead)
+
+Use `FixedWindowLimiter` when a simple per-minute/hour counter is appropriate. It returns an `X-RateLimit-Reset` header through the middleware.
+
 ### Custom key resolution
 
-By default, the middleware keys by client IP (honoring `X-Forwarded-For`). To key by API key,
+By default, the middleware keys by client IP (honoring `X-Forwarded-For`). To key by API key, use `HeaderKeyResolver`:
+
+```php
+use RateLimiter\Middleware\HeaderKeyResolver;
+
+$middleware = new RateLimitMiddleware(
+    $limiter,
+    new Psr17Factory(),
+    new HeaderKeyResolver('X-API-Key', 'api-key:'),
+);
+```
+
+## Security note
+
+Only honor `X-Forwarded-For` when your application is behind a trusted proxy that removes client-supplied forwarding headers. Otherwise, use a custom `KeyResolverInterface` implementation based on `REMOTE_ADDR` or authenticated identity.
